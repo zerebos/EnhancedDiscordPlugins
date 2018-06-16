@@ -3,3 +3,4 @@ A selection of my [BetterDiscord plugins](https://github.com/rauenzi/BetterDisco
 
 ## Plugin List
  - [HideDisabledEmojis](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/HideDisabledEmojis.js) - Hides disabled emojis from the emoji picker.
+ - [StatusEverywhere](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/StatusEverywhere.js) - Adds status to anywhere there is an Avatar.
