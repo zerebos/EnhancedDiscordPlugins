@@ -16,7 +16,7 @@ const EDPlugin = class EDPlugin extends Plugin {
         );
     }
 };
-const compilePlugin = (Plugin, Api) => {
+const compilePlugin = ([Plugin, Api]) => {
     const plugin = (Plugin, Api) => {
     const {DiscordSelectors, WebpackModules, DiscordModules, PluginUtilities, Patcher, ColorConverter} = Api;
 
@@ -234,13 +234,12 @@ module.exports = new EDPlugin({load: async function() {
         await this.sleep(1000); // wait until this is loaded in order to use it for modules
 
     const Api = require("./pluginapi.jsm");
-    const compiledPlugin = compilePlugin(Object, Api.buildPlugin(config)[1]);
+    const compiledPlugin = compilePlugin(Api.buildPlugin(config));
     this._instantiation = new compiledPlugin();
     this._instantiation.settings = new Proxy({}, {
-        get: function(obj, mod) {return new Proxy({}, {
-            get: function(obj, mod) {return true}
+        get: function() {return new Proxy({}, {
+            get: function() {return true}
         })}
     });
-    console.log(this)
     if (typeof(this._instantiation.onStart) == "function") this._instantiation.onStart();
 }});

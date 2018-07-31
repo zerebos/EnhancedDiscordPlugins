@@ -2158,8 +2158,8 @@ class ReactTools {
 	 * @return {object} the internal react instance
 	 */
 	static getReactInstance(node) {
-		if (!(node instanceof jQuery) && !(node instanceof Element)) return undefined;
-		var domNode = node instanceof jQuery ? node[0] : node;
+		if (!(node instanceof window.jQuery) && !(node instanceof Element)) return undefined;
+		var domNode = node instanceof window.jQuery ? node[0] : node;
 		return domNode[Object.keys(domNode).find((key) => key.startsWith("__reactInternalInstance"))];
 	}
 
@@ -2824,6 +2824,8 @@ Library.buildPlugin = function(config) {
 
 if (document.getElementById("ZLibraryCSS")) document.getElementById("ZLibraryCSS").remove();
 document.head.append(Library.DOMTools.createElement(`<style id="ZLibraryCSS">${ui__WEBPACK_IMPORTED_MODULE_1__["Settings"].CSS + ui__WEBPACK_IMPORTED_MODULE_1__["Toasts"].CSS + Library.PluginUpdater.CSS}</style>`));
+
+if (!window.jQuery) window.$ = window.jQuery = function() {};
 
 /* harmony default export */ __webpack_exports__["default"] = (Library);
 
