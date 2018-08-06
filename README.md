@@ -7,5 +7,6 @@ A selection of my [BetterDiscord plugins](https://github.com/rauenzi/BetterDisco
  - [HideDisabledEmojis](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/HideDisabledEmojis.js) - Hides disabled emojis from the emoji picker.
  - [HideIconBadge](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/HideIconBadge.js) - Hides the badge on the app icon and tray icon.
  - [ImageToClipboard](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/ImageToClipboard.js) - Copies images (png/jpg) directly to clipboard.
+ - [ReadAll](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/ReadAll.js) - Adds a button to mark all guilds as read (does not require lib).
  - [ReplySystem](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/ReplySystem.js) - Adds a native-esque reply button with preview.
  - [StatusEverywhere](https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/StatusEverywhere.js) - Adds status to anywhere there is an Avatar.
