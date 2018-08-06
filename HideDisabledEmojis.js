@@ -1,63 +1,73 @@
-const Plugin = require('../plugin');
+const Plugin = require("../plugin");
+const config = {"info":{"name":"HideDisabledEmojis","authors":[{"name":"Zerebos","discord_id":"249746236008169473","github_username":"rauenzi","twitter_username":"ZackRauen"}],"version":"0.0.2","description":"Hides disabled emojis from the emoji picker. Support Server: bit.ly/ZeresServer","github":"https://github.com/rauenzi/BetterDiscordAddons/tree/master/Plugins/HideDisabledEmojis","github_raw":"https://github.com/rauenzi/BetterDiscordAddons/blob/master/Plugins/HideDisabledEmojis/HideDisabledEmojis.plugin.js"},"main":"index.js"};
 
-module.exports = new Plugin({
-	name: 'Hide Disabled Emojis',
-	id: "HideDisabledEmojis",
-	author: 'Zerebos#7790',
-	description: "Hides disabled emojis from the emoji picker.",
-	color: '#206694',
+try {
+	const Api = require("./pluginapi.js");
+	const [BasePlugin, BoundAPI] = Api.buildPlugin(config);
 
-	load: async function() {
-		while (!window.findModule('isEmojiDisabled', true))
-			await this.sleep(1000);
-		
-		let EmojiInfo = window.findModule('isEmojiDisabled', true);
-		let EmojiPicker = this.find(m => m.displayName == "EmojiPicker");
-		
-		window.monkeyPatch(EmojiInfo, "isEmojiFiltered", (data) => {
-			data.callOriginalMethod()
-			data.returnValue = data.returnValue || EmojiInfo.isEmojiDisabled(data.methodArguments[0], data.methodArguments[1]);
-			return data.returnValue;
-		});
-		
-		window.monkeyPatch(EmojiPicker.prototype, "render", (data) => {
-			let cats = data.thisObject.categories;
-			let filtered = data.thisObject.computeMetaData();
-			let newcats = {};
+	const EDPlugin = class EDPlugin extends BasePlugin {
+		get name() {return config.info.name.replace(" ", "");}
+		get author() {return config.info.authors.map(a => a.name).join(", ");}
+		get description() {return config.info.description;}
+		load() {if (typeof(this.onStart) == "function") this.onStart();}
+		unload() {if (typeof(this.onStop) == "function") this.onStop();}
+	};
+	const compilePlugin = (Plugin, Api) => {
+		const plugin = (Plugin, Api) => {
+    const {Logger, Patcher, Toasts, WebpackModules} = Api;
+    return class HideDisabledEmojis extends Plugin {
+        onStart() {
+            //super.start();
+            Logger.info("Started");
 
-			for (let c of filtered) newcats[c.category] ? newcats[c.category] += 1 : newcats[c.category] = 1;
+            let EmojiInfo = WebpackModules.findByUniqueProperties(["isEmojiDisabled"]);
+            let EmojiPicker = WebpackModules.findByDisplayName("EmojiPicker");
+            Patcher.after(EmojiInfo, "isEmojiFiltered", (thisObject, methodArguments, returnValue) => {
+                return returnValue || EmojiInfo.isEmojiDisabled(methodArguments[0], methodArguments[1]);
+            });
 
-			let i = 0;
-			for (let cat of cats) {
-				if (!newcats[cat.category]) cat.offsetTop = 999999;
-				else {
-					cat.offsetTop = i * 32;
-					i += newcats[cat.category] + 1;
-				}
-				data.thisObject.categoryOffsets[cat.category] = cat.offsetTop;
-			}
+            Patcher.before(EmojiPicker.prototype, "render", (thisObject) => {
+                let cats = thisObject.categories;
+                let filtered = thisObject.computeMetaData();
+                let newcats = {};
 
-			cats.sort((a,b) => a.offsetTop - b.offsetTop);
-			data.callOriginalMethod();
-			return data.returnValue;
-		});
-	},
-	unload: function() {
-		let EmojiInfo = window.findModule('isEmojiDisabled', true).isEmojiFiltered;
-		let EmojiPicker = this.find(m => m.displayName == "EmojiPicker").prototype.render;
-		if (EmojiInfo && EmojiInfo.__monkeyPatched) EmojiInfo.unpatch();
-		if (EmojiPicker && EmojiPicker.__monkeyPatched) EmojiPicker.unpatch();
-	},	
-	find: function(filter) {
-		let req = window.req;
-		for (let i in req.c) {
-			if (req.c.hasOwnProperty(i)) {
-				let m = req.c[i].exports;
-				if (m && m.__esModule && m.default && filter(m.default)) return m.default;
-				if (m && filter(m))	return m;
-			}
+                for (let c of filtered) newcats[c.category] ? newcats[c.category] += 1 : newcats[c.category] = 1;
+
+                let i = 0;
+                for (let cat of cats) {
+                    if (!newcats[cat.category]) cat.offsetTop = 999999;
+                    else {
+                        cat.offsetTop = i * 32;
+                        i += newcats[cat.category] + 1;
+                    }
+                    thisObject.categoryOffsets[cat.category] = cat.offsetTop;
+                }
+
+                cats.sort((a,b) => a.offsetTop - b.offsetTop);
+            });
+
+            Toasts.default(this.getName() + " " + this.getVersion() + " has started.");
+        }
+        
+        onStop() {
+            Logger.info("stopped");
+            Patcher.unpatchAll();
+        }
+
+    };
+};
+		return plugin(Plugin, Api);
+	};
+
+	module.exports = new (compilePlugin(EDPlugin, BoundAPI))();
+}
+catch (err) {
+	module.exports = new Plugin({
+		name: config.info.name.replace(" ", ""),
+		author: config.info.authors.map(a => a.name).join(", "),
+		description: config.info.description,
+		load: function() {
+			alert("Hi there,\n\nIn order to use Zerebos' plugins please download his ED plugin api and put it in the plugins folder like any other plugin.\n\n https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/pluginapi.js");
 		}
-		this.warn('Cannot find module');
-		return null;
-	}
-});
+	});
+}

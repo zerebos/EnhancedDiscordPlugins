@@ -1,23 +1,19 @@
 const Plugin = require("../plugin");
+const config = {"info":{"name":"ReplySystem","authors":[{"name":"Zerebos","discord_id":"249746236008169473","github_username":"rauenzi","twitter_username":"ZackRauen"}],"version":"0.0.5","description":"Adds a native-esque reply button with preview. Support Server: bit.ly/ZeresServer","github":"https://github.com/rauenzi/BetterDiscordAddons/tree/master/Plugins/ReplySystem","github_raw":"https://raw.githubusercontent.com/rauenzi/BetterDiscordAddons/master/Plugins/ReplySystem/ReplySystem.plugin.js"},"changelog":[{"title":"Bugs Squashed","type":"fixed","items":["Fix compatibility with quoter.","Adjust colors for light mode.","Make the list actually appear."]}],"main":"index.js"};
 
-const config = {"info":{"name":"ReplySystem","authors":[{"name":"Zerebos","discord_id":"249746236008169473","github_username":"rauenzi","twitter_username":"ZackRauen"}],"version":"0.0.4","description":"Adds a native-esque reply button with preview. Support Server: bit.ly/ZeresServer","github":"https://github.com/rauenzi/BetterDiscordAddons/tree/master/Plugins/ReplySystem","github_raw":"https://raw.githubusercontent.com/rauenzi/BetterDiscordAddons/master/Plugins/ReplySystem/ReplySystem.plugin.js"},"changelog":[{"title":"Bugs Squashed","type":"fixed","items":["More fixes for Discord being bad."]}],"main":"index.js"};
+try {
+	const Api = require("./pluginapi.js");
+	const [BasePlugin, BoundAPI] = Api.buildPlugin(config);
 
-const EDPlugin = class EDPlugin extends Plugin {
-    constructor(ext) {
-        super(
-            Object.assign({
-            name: config.info.name.replace(" ", ""),
-            author: config.info.authors.map(a => a.name).join(", "),
-            description: config.info.description,
-        
-            load: function() {if (typeof(this._instantiation.onStart) == "function") this._instantiation.onStart();},
-            unload: function() {if (this._instantiation && typeof(this._instantiation.onStop) == "function") this._instantiation.onStop();}
-            }, ext)
-        );
-    }
-};
-const compilePlugin = ([Plugin, Api]) => {
-    const plugin = (Plugin, Api) => {
+	const EDPlugin = class EDPlugin extends BasePlugin {
+		get name() {return config.info.name.replace(" ", "");}
+		get author() {return config.info.authors.map(a => a.name).join(", ");}
+		get description() {return config.info.description;}
+		load() {if (typeof(this.onStart) == "function") this.onStart();}
+		unload() {if (typeof(this.onStop) == "function") this.onStop();}
+	};
+	const compilePlugin = (Plugin, Api) => {
+		const plugin = (Plugin, Api) => {
     const {WebpackModules, DiscordModules, Settings, Patcher, ReactTools, DiscordSelectors, DOMTools} = Api;
 
     const Dispatcher = WebpackModules.getByProps("ComponentDispatch").ComponentDispatch;
@@ -201,10 +197,19 @@ const compilePlugin = ([Plugin, Api]) => {
                 opacity: 0;
                 transition: opacity 200ms ease;
                 cursor: pointer;
+                color: white;
             }
             .reply-icon {
                 fill: white;
                 vertical-align: top;
+            }
+
+            .theme-light .reply-button {
+                color: gray;
+            }
+
+            .theme-light .reply-icon {
+                fill: gray;
             }
             
             .container-1YxwTf:hover .reply-button {
@@ -243,6 +248,7 @@ const compilePlugin = ([Plugin, Api]) => {
                 padding: 0 18px 5px 5px;
                 border-radius: 5px 5px 0 0;
                 font-size: 14px;
+                color: white;
             }
             
             @keyframes reply-add {
@@ -325,7 +331,7 @@ const compilePlugin = ([Plugin, Api]) => {
         }
         
         onStop() {
-            document.querySelector(`style#${this.getName()}`);
+            document.querySelector(`style#${this.getName()}`).remove();
             Patcher.unpatchAll(this.getName());
             this.forceUpdateMessages();
             this.forceUpdateTextarea();
@@ -355,14 +361,14 @@ const compilePlugin = ([Plugin, Api]) => {
     
         async patchTextareaComponent() {
             let Textarea = await new Promise(resolve => {
-                let form = document.querySelector(".chat form");
+                let form = document.querySelector(".chat-3bRxxu form");
                 if (form) resolve(ReactTools.getOwnerInstance(form).constructor);
                 else {
                     let channel = WebpackModules.find(m => m.prototype && m.prototype.renderEmptyChannel);
                     let unpatch = Patcher.before(channel.prototype, "componentDidUpdate", (t) => {
                         let elem = DiscordModules.ReactDOM.findDOMNode(t);
                         if (!elem) return;
-                        let form = elem.querySelector(".chat form");
+                        let form = elem.querySelector(".chat-3bRxxu form");
                         if (!form) return;
                         unpatch();
                         resolve(ReactTools.getOwnerInstance(form).constructor);
@@ -380,7 +386,7 @@ const compilePlugin = ([Plugin, Api]) => {
         }
     
         forceUpdateTextarea() {
-            let form = document.querySelector(".chat form");
+            let form = document.querySelector(".chat-3bRxxu form");
             form && ReactTools.getOwnerInstance(form).forceUpdate();
         }
     
@@ -441,24 +447,18 @@ const compilePlugin = ([Plugin, Api]) => {
         }
     };
 };
-    return plugin(Plugin, Api);
-};
+		return plugin(Plugin, Api);
+	};
 
-module.exports = new EDPlugin({load: async function() {
-    try {require.resolve("./pluginapi.jsm");}
-    catch(e) {
-        return alert("Hi there,\n\nIn order to use Zerebos' plugins please download his ED plugin api and put it in the plugins folder like any other plugin (keep the extension as .jsm though).\n\n https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/pluginapi.jsm");
-    }
-    while (typeof window.webpackJsonp === "undefined")
-        await this.sleep(1000); // wait until this is loaded in order to use it for modules
-
-    const Api = require("./pluginapi.jsm");
-    const compiledPlugin = compilePlugin(Api.buildPlugin(config));
-    this._instantiation = new compiledPlugin();
-    this._instantiation.settings = new Proxy({}, {
-        get: function() {return new Proxy({}, {
-            get: function() {return true}
-        })}
-    });
-    if (typeof(this._instantiation.onStart) == "function") this._instantiation.onStart();
-}});
+	module.exports = new (compilePlugin(EDPlugin, BoundAPI))();
+}
+catch (err) {
+	module.exports = new Plugin({
+		name: config.info.name.replace(" ", ""),
+		author: config.info.authors.map(a => a.name).join(", "),
+		description: config.info.description,
+		load: function() {
+			alert("Hi there,\n\nIn order to use Zerebos' plugins please download his ED plugin api and put it in the plugins folder like any other plugin.\n\n https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/pluginapi.js");
+		}
+	});
+}

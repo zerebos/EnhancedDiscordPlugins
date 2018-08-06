@@ -1,31 +1,50 @@
-const Plugin = require('../plugin');
+const Plugin = require("../plugin");
+const config = {"info":{"name":"StatusEverywhere","authors":[{"name":"Zerebos","discord_id":"249746236008169473","github_username":"rauenzi","twitter_username":"ZackRauen"}],"version":"0.4.0","description":"Adds user status everywhere Discord doesn't. Support Server: bit.ly/ZeresServer","github":"https://github.com/rauenzi/BetterDiscordAddons/tree/master/Plugins/StatusEverywhere","github_raw":"https://raw.githubusercontent.com/rauenzi/BetterDiscordAddons/master/Plugins/StatusEverywhere/StatusEverywhere.plugin.js"},"changelog":[{"title":"Bugs Squashed","type":"fixed","items":["Updated for Discord changes."]}],"main":"index.js"};
 
-module.exports = new Plugin({
-	name: 'StatusEverywhere',
-	id: "StatusEverywhere",
-	author: 'Zerebos#7790',
-	description: "Adds status to anywhere there is an Avatar.",
-	color: '#43B581',
+try {
+	const Api = require("./pluginapi.js");
+	const [BasePlugin, BoundAPI] = Api.buildPlugin(config);
 
-	load: async function() {
-		while (!window.findModule('getStatuses', true) || !this.find(m => m.displayName == "Avatar"))
-			await this.sleep(1000);
-		
-		const UserStatusStore = window.findModule("getStatuses", true);
-		const Avatar = window.findModule("AvatarWrapper");
-		const original = Avatar.default;
-		window.monkeyPatch(Avatar, "default", (data) => {
-			if (data.methodArguments[0].status) return;
-			const id = data.methodArguments[0].src.split("/")[4];
-			data.methodArguments[0].status = UserStatusStore.getStatus(id);
-			data.callOriginalMethod();
-			return data.returnValue;
-		});
-		Object.assign(Avatar.default, original);
-	},
-	unload: function() {
-		const Avatar = window.findModule("AvatarWrapper");
-		if (!Avatar) return;
-		if (Avatar.default.__monkeyPatched) Avatar.default.unpatch();
-	}
-});
+	const EDPlugin = class EDPlugin extends BasePlugin {
+		get name() {return config.info.name.replace(" ", "");}
+		get author() {return config.info.authors.map(a => a.name).join(", ");}
+		get description() {return config.info.description;}
+		load() {if (typeof(this.onStart) == "function") this.onStart();}
+		unload() {if (typeof(this.onStop) == "function") this.onStop();}
+	};
+	const compilePlugin = (Plugin, Api) => {
+		const plugin = (Plugin, Api) => {
+    const {Patcher, WebpackModules, DiscordModules} = Api;
+    return class StatusEverywhere extends Plugin {
+        onStart() {
+            const Avatar = WebpackModules.getByProps("AvatarWrapper");
+            const original = Avatar.default;
+            Patcher.before(Avatar, "default", (_, args) => {
+                if (args[0].status) return;
+                const id = args[0].src.split("/")[4];
+                args[0].status = DiscordModules.UserStatusStore.getStatus(id);
+            });
+            Object.assign(Avatar.default, original);
+        }
+        
+        onStop() {
+            Patcher.unpatchAll();
+        }
+
+    };
+};
+		return plugin(Plugin, Api);
+	};
+
+	module.exports = new (compilePlugin(EDPlugin, BoundAPI))();
+}
+catch (err) {
+	module.exports = new Plugin({
+		name: config.info.name.replace(" ", ""),
+		author: config.info.authors.map(a => a.name).join(", "),
+		description: config.info.description,
+		load: function() {
+			alert("Hi there,\n\nIn order to use Zerebos' plugins please download his ED plugin api and put it in the plugins folder like any other plugin.\n\n https://raw.githubusercontent.com/rauenzi/EnhancedDiscordPlugins/master/pluginapi.js");
+		}
+	});
+}
