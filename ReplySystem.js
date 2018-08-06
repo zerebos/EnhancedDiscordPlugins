@@ -1,16 +1,21 @@
 const Plugin = require("../plugin");
 const config = {"info":{"name":"ReplySystem","authors":[{"name":"Zerebos","discord_id":"249746236008169473","github_username":"rauenzi","twitter_username":"ZackRauen"}],"version":"0.0.5","description":"Adds a native-esque reply button with preview. Support Server: bit.ly/ZeresServer","github":"https://github.com/rauenzi/BetterDiscordAddons/tree/master/Plugins/ReplySystem","github_raw":"https://raw.githubusercontent.com/rauenzi/BetterDiscordAddons/master/Plugins/ReplySystem/ReplySystem.plugin.js"},"changelog":[{"title":"Bugs Squashed","type":"fixed","items":["Fix compatibility with quoter.","Adjust colors for light mode.","Make the list actually appear."]}],"main":"index.js"};
+let hasApi = false;
 
-try {
+try {require("./pluginapi.js"); hasApi = true;}
+catch(e) {hasApi = false;}
+
+if (hasApi) {
 	const Api = require("./pluginapi.js");
 	const [BasePlugin, BoundAPI] = Api.buildPlugin(config);
 
 	const EDPlugin = class EDPlugin extends BasePlugin {
+		constructor() {super(...arguments); this.settings = this.defaultSettings;}
 		get name() {return config.info.name.replace(" ", "");}
 		get author() {return config.info.authors.map(a => a.name).join(", ");}
 		get description() {return config.info.description;}
-		load() {if (typeof(this.onStart) == "function") this.onStart();}
-		unload() {if (typeof(this.onStop) == "function") this.onStop();}
+		load() {if (typeof(this.onStart) == "function") this.onStart(), this._enabled = true;}
+		unload() {if (typeof(this.onStop) == "function") this.onStop(), this._enabled = false;}
 	};
 	const compilePlugin = (Plugin, Api) => {
 		const plugin = (Plugin, Api) => {
@@ -452,7 +457,7 @@ try {
 
 	module.exports = new (compilePlugin(EDPlugin, BoundAPI))();
 }
-catch (err) {
+else {
 	module.exports = new Plugin({
 		name: config.info.name.replace(" ", ""),
 		author: config.info.authors.map(a => a.name).join(", "),
