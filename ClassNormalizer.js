@@ -15,17 +15,20 @@ module.exports = new Plugin({
         this.patchClassModules(modules);
         this.normalizeElement(document.querySelector("#app-mount"));
         this.hasPatched = true;
+        this.unpatchDOM = this.patchDOMMethods();
 		this.unpatch = EDApi.monkeyPatch(window, "findModule", {after: (data) => {
 			if (!modules.includes(data.returnValue)) return;
 			const newReturn = Object.assign({}, data.returnValue);
 			this.unpatchClassModule(normalizedPrefix, newReturn)
 			data.returnValue = newReturn;
-		}});
+        }});
+        
     },
 
     unload: function() {
         if (!this.hasPatched) return;
-		this.unpatch();
+        this.unpatch();
+        this.unpatchDOM();
         this.unpatchClassModules(EDApi.findAllModules(this.moduleFilter.bind(this)));
         this.revertElement(document.querySelector("#app-mount"));
         this.hasPatched = false;
@@ -46,6 +49,7 @@ module.exports = new Plugin({
     shouldIgnore: function(value) {
         if (!isNaN(value)) return true;
         if (value.endsWith("px") || value.endsWith("ch") || (value.endsWith("em") && !value.endsWith("tem")) || value.endsWith("ms")) return true;
+        if (value.startsWith("layerContainer-")) return true;
         if (value.startsWith("#") && (value.length == 7 || value.length == 4)) return true;
         if (value.includes("calc(") || value.includes("rgba")) return true;
         return false;
@@ -116,5 +120,14 @@ module.exports = new Plugin({
             if (classes[c].startsWith(`${normalizedPrefix}-`)) toRemove.push(classes[c]);
         }
         element.classList.remove(...toRemove);
+    },
+
+    patchDOMMethods: function() {
+        const contains = DOMTokenList.prototype.contains;
+        DOMTokenList.prototype.contains = function(token) {
+            const tokens = token.split(" ");
+            return tokens.every(t => contains.call(this, t));
+        };
+        return () => DOMTokenList.prototype.contains = contains;
     }
 });
