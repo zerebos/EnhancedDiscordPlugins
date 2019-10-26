@@ -35,7 +35,8 @@ module.exports = new Plugin({
 		button.textContent = "Read All";
 		button.classList.add(FriendsOnline);
 		button.addEventListener("click", () => {
-			for (let g in GuildStore.getGuilds()) GuildActions.markGuildAsRead(g);
+			const guilds = Object.keys(GuildStore.getGuilds());
+			GuildActions.markGuildsAsRead(guilds);
 		});
 		while (!document.querySelector(`.${GuildClasses.guildSeparator}`)) await this.sleep(100);
 		document.querySelector(`.${GuildClasses.guildSeparator}`).insertAdjacentElement("afterend", button);
